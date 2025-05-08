@@ -33,7 +33,7 @@ class TokenData(BaseModel):
 def compare_password(plain: str, hashed: str) -> bool:
     return bcrypt_context.verify(plain, hashed)
 
-def get_password_hash(password) -> bool:
+def get_password_hash(password) -> str:
     return bcrypt_context.hash(password)
 
 def create_access_token(data: dict, expires_delta: timedelta | None = None):
@@ -101,17 +101,18 @@ def login(response: Response, form_data: OAuth2PasswordRequestForm = Depends()) 
     access_token = create_access_token(data={"sub": user.username}, expires_delta=ACCESS_TOKEN_EXPIRE_MINUTES)
     token = Token(access_token=access_token, token_type="bearer") 
     
-    response.headers["Authorization"] = token
+    return token
+    # response.headers["Authorization"] = token
 
-@router.get("/logout")
-def logout(response: Response, token: str = Depends(oauth2_scheme)):
-    validate_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Cannot validate user/ Not logged in.",
-    )
-    if not token:
-        raise validate_exception
+# @router.get("/logout")
+# def logout(response: Response, token: str = Depends(oauth2_scheme)):
+#     validate_exception = HTTPException(
+#         status_code=status.HTTP_401_UNAUTHORIZED,
+#         detail="Cannot validate user/ Not logged in.",
+#     )
+#     if not token:
+#         raise validate_exception
     
-    del response.headers["Authorization"]
-    return {"message": "Logged out successfully"}
+#     # del response.headers["Authorization"]
+#     return {"message": "Logged out successfully"}
 
