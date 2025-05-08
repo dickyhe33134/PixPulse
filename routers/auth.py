@@ -100,8 +100,8 @@ def login(response: Response, form_data: OAuth2PasswordRequestForm = Depends()) 
         raise login_exception
     access_token = create_access_token(data={"sub": user.username}, expires_delta=ACCESS_TOKEN_EXPIRE_MINUTES)
     token = Token(access_token=access_token, token_type="bearer") 
-
-    return token
+    
+    response.headers["Authorization"] = token
 
 @router.get("/logout")
 def logout(response: Response, token: str = Depends(oauth2_scheme)):
@@ -112,5 +112,6 @@ def logout(response: Response, token: str = Depends(oauth2_scheme)):
     if not token:
         raise validate_exception
     
+    del response.headers["Authorization"]
     return {"message": "Logged out successfully"}
 

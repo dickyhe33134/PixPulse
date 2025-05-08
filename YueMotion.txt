@@ -1,2 +1,0 @@
-THe full database is accessible at:
-https://huggingface.co/datasets/CAiRE/YueMotion
