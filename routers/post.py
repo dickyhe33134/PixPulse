@@ -17,7 +17,7 @@ def get_post():
     result = list(query_result)
 
     session.close()
-    return result
+    return {"message": "Successfully got posts", "result": result}
 
 
 @router.post("/")
@@ -32,7 +32,7 @@ def query_post(
     result = list(query_result)
 
     session.close()
-    return result
+    return {"message": "Successfully queried for posts", "result": result}
 
 @router.put("/")
 def add_post(posts: list[Post] = Body(..., embed=True)):
@@ -43,7 +43,7 @@ def add_post(posts: list[Post] = Body(..., embed=True)):
     session.commit()
 
     session.close()
-    return {"message": "Successfully added post"}
+    return {"message": "Successfully added posts"}
 
 @router.delete("/")
 def delete_post(post_ids: list[int] = Body(..., embed=True)):
@@ -58,7 +58,7 @@ def delete_post(post_ids: list[int] = Body(..., embed=True)):
     session.commit()
 
     session.close()
-    return {"message": "Successfully deleted post"}
+    return {"message": "Successfully deleted posts"}
 
 @router.patch("/")
 def update_post(post: Post = Body(..., embed=True)):
