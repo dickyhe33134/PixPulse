@@ -2,15 +2,50 @@ from typing import Annotated
 from models import User
 from sqlmodel import select, col, or_, delete
 from utils.dbconn import create_session
-from fastapi import APIRouter, Body
+from fastapi import APIRouter, Body, HTTPException, status
 from routers.auth import get_password_hash
-from models import HasFriends
-from models import Post
+from routers.friend import build_user_graph
+from models import Post, HasFriend, SafeUser, FriendRequest
 import bcrypt
 
 bcrypt.__about__ = bcrypt
 
 router = APIRouter(prefix="/api/user")
+
+
+# Get social distance of users
+@router.post("/distance")
+def get_social_distance(
+    userid: int = Body(..., embed=True), friend_id: int = Body(..., embed=True)
+) -> int:
+    
+    # Initialize the graph and BFS
+    graph = build_user_graph()
+    visited = set()
+    queue = [(userid, 0)]
+    distance = {userid: 0}
+
+    # BFS to find the shortest path
+    while queue:
+        current_user, dist = queue.pop(0)
+        visited.add(current_user)
+
+        if current_user == friend_id:
+            return dist
+
+        for friend in graph[current_user]:
+            if friend not in visited:
+                queue.append((friend, dist + 1))
+                visited.add(friend)
+                distance[friend] = dist + 1
+    
+    dist = distance.get(friend_id, -1)
+    if (dist == -1):
+        return HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Friend not found",
+        )
+    return dist
 
 
 # Get a list of all of the users
@@ -19,11 +54,10 @@ def get_user() -> list[User]:
     session = create_session()
 
     statement = select(User)
-    query_result = session.exec(statement)
-    result = [x for x in query_result]
+    query_result = session.exec(statement).all()
 
     session.close()
-    return result
+    return query_result
 
 
 # Query for user using userid
@@ -33,9 +67,7 @@ def query_user(uids: list[int] = Body(..., embed=True)) -> list[User]:
         session = create_session()
 
         statement = select(User).where(col(User.userid).in_(uids))
-        result = session.exec(statement)
-
-        result = [x for x in result]
+        result = session.exec(statement).all()
 
         session.close()
         return result
@@ -77,9 +109,10 @@ def delete_user(uids: list[int] = Body(..., embed=True)):
     except Exception as e:
         print(e)
         return {"message": "Error when deleting users", "error": e}
-    
+
+
 @router.patch("/")
-def update_user(user: User = Body(..., embed=True))->list[Post] :
+def update_user(user: User = Body(..., embed=True)) -> list[Post]:
     try:
         session = create_session()
 
@@ -101,4 +134,3 @@ def update_user(user: User = Body(..., embed=True))->list[Post] :
     except Exception as e:
         print(e)
         return {"message": "Error when updating users", "error": e}
-

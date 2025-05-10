@@ -5,13 +5,14 @@ from config import Settings
 from utils.dbconn import create_session
 from sqlmodel import select
 from models import User
-from routers import user, auth, post
+from routers import user, auth, post, friend
 from routers.auth import oauth2_scheme
 
 app = FastAPI()
 app.include_router(user.router)
 app.include_router(auth.router)
 app.include_router(post.router)
+app.include_router(friend.router)
 
 
 

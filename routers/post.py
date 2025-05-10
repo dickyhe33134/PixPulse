@@ -1,7 +1,7 @@
 from datetime import datetime
 from sqlmodel import select, col, or_
 from fastapi import APIRouter, Body, Query, HTTPException
-from models import Post, HasFriends
+from models import Post, HasFriend
 from utils.dbconn import create_session
 
 router = APIRouter(prefix="/api/post")
@@ -89,8 +89,8 @@ def recommend_posts(
     try:
         # Get friend IDs
         friend_ids = session.exec(
-            select(HasFriends.friend_id)
-            .where(HasFriends.userid == user_id)
+            select(HasFriend.friend_id)
+            .where(HasFriend.userid == user_id)
         ).scalars().all()
 
         # Get posts from friends OR popular posts

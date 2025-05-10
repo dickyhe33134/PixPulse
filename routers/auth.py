@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, status, HTTPException, Response
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from passlib.context import CryptContext
-from models import User, UserRoles
+from models import User
 from typing import Annotated
 from datetime import timedelta, timezone, datetime
 from pydantic import BaseModel
@@ -23,9 +23,6 @@ class Token(BaseModel):
     access_token: str
     token_type: str
 
-class TokenData(BaseModel):
-    username: int | None = None
-    role: UserRoles | None = None
 
 
 
