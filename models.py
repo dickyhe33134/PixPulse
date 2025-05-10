@@ -31,3 +31,13 @@ class Post(SQLModel, table=True):
     uploader: int = Field(foreign_key="users.userid")
     posturl: str | None
     word_content: str | None
+    like_count: int | None
+
+class HasFriends(SQLModel, table=True):
+
+    __tablename__="hasfriends"
+
+    userid: int | None=Field(default=None, primary_key=True,foreign_key="users.userid")
+    friend_id: int | None=Field(default= None, foreign_key="users.userid")
+    is_close_friend:bool=Field(default=False)
+

@@ -1,9 +1,11 @@
 from typing import Annotated
-from sqlmodel import select, col, delete
 from models import User
+from sqlmodel import select, col, or_, delete
 from utils.dbconn import create_session
 from fastapi import APIRouter, Body
 from routers.auth import get_password_hash
+from models import HasFriends
+from models import Post
 import bcrypt
 
 bcrypt.__about__ = bcrypt
@@ -77,7 +79,7 @@ def delete_user(uids: list[int] = Body(..., embed=True)):
         return {"message": "Error when deleting users", "error": e}
     
 @router.patch("/")
-def update_user(user: User = Body(..., embed=True)):
+def update_user(user: User = Body(..., embed=True))->list[Post] :
     try:
         session = create_session()
 
@@ -99,3 +101,4 @@ def update_user(user: User = Body(..., embed=True)):
     except Exception as e:
         print(e)
         return {"message": "Error when updating users", "error": e}
+

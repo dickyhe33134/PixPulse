@@ -1,9 +1,8 @@
 from datetime import datetime
 from sqlmodel import select, col, or_
-from fastapi import APIRouter, Body
-from models import Post
+from fastapi import APIRouter, Body, Query, HTTPException
+from models import Post, HasFriends
 from utils.dbconn import create_session
-
 
 router = APIRouter(prefix="/api/post")
 
@@ -80,3 +79,28 @@ def update_post(post: Post = Body(..., embed=True)):
     session.commit()
     session.close()
     return {"message": "Successfully updated post"}
+
+@router.get("/recommendations")
+def recommend_posts(
+    user_id: int = Query(..., description="Target user ID"),
+    min_likes: int = Query(50, description="Minimum likes threshold")
+):
+    session = create_session()
+    try:
+        # Get friend IDs
+        friend_ids = session.exec(
+            select(HasFriends.friend_id)
+            .where(HasFriends.userid == user_id)
+        ).scalars().all()
+
+        # Get posts from friends OR popular posts
+        posts = session.exec(select(Post).where(or_(Post.uploader.in_(friend_ids),Post.like_count >= min_likes))).scalars().all()
+        return {
+            "message": "Success" if posts else "No posts found",
+            "results": posts
+        }
+
+    except Exception as e:
+        raise HTTPException(500, f"Database error: {str(e)}")
+    finally:
+        session.close()
