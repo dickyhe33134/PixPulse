@@ -58,6 +58,9 @@ def get_all_social_distance(userid: int = Body(..., embed=True)) -> dict[int, in
         dist, user = heapq.heappop(heap)
         visited.add(user)
 
+        if user not in graph:
+            continue
+
         for friend, cost in graph[user]:
             if friend not in visited:
                 heapq.heappush(heap, (dist+cost, friend))

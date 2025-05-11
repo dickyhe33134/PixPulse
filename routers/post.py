@@ -8,18 +8,18 @@ import jwt
 
 router = APIRouter(prefix="/api/post")
 
+# Get all posts
 @router.get("/")
-def get_post():
+def get_post() -> list[Post]:
     session = create_session()
 
     statement = select(Post)
-    query_result = session.exec(statement)
-    result = list(query_result)
+    result = session.exec(statement).all()
 
     session.close()
-    return {"message": "Successfully got posts", "result": result}
+    return result
 
-
+# Query for posts
 @router.post("/")
 def query_post(
     post_ids: list[int] | None = Body(..., embed=True),
@@ -28,12 +28,12 @@ def query_post(
     session = create_session()
 
     statement = select(Post).where(or_(col(Post.post_id).in_(post_ids), col(Post.uploader).in_(uploaders)))
-    query_result = session.exec(statement)
-    result = list(query_result)
+    result = session.exec(statement).all()
 
     session.close()
-    return {"message": "Successfully queried for posts", "result": result}
+    return result
 
+# Add posts
 @router.put("/")
 def add_post(posts: list[Post] = Body(..., embed=True)):
     session = create_session()
@@ -45,13 +45,13 @@ def add_post(posts: list[Post] = Body(..., embed=True)):
     session.close()
     return {"message": "Successfully added posts"}
 
+# Delete posts
 @router.delete("/")
 def delete_post(post_ids: list[int] = Body(..., embed=True)):
     session = create_session()
 
     statement = select(Post).where(col(Post.post_id).in_(post_ids))
-    query_result = session.exec(statement)
-    result = list(query_result)
+    result = session.exec(statement).all()
 
     for post in result:
         session.delete(post)
@@ -60,13 +60,13 @@ def delete_post(post_ids: list[int] = Body(..., embed=True)):
     session.close()
     return {"message": "Successfully deleted posts"}
 
+# Update posts
 @router.patch("/")
 def update_post(post: Post = Body(..., embed=True)):
     session = create_session()
 
     statement = select(Post).where(Post.post_id == post.post_id)
-    query_result = session.exec(statement)
-    result = list(query_result)
+    result = session.exec(statement).all()
 
     if len(result) == 0:
         return {"message": "Post not found"}
@@ -81,6 +81,7 @@ def update_post(post: Post = Body(..., embed=True)):
     session.close()
     return {"message": "Successfully updated post"}
 
+# Recommend posts based on user distance and likes
 @router.get("/recommendations")
 def post_recommendations(
     number_of_posts: int,
@@ -93,15 +94,15 @@ def post_recommendations(
 
     # Get userid from token
     payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-    user_id = payload["sub"]
-    if user_id is None:
+    userid = int(payload["sub"])
+    if userid is None:
         raise credentials_exception
 
     # Start session
     session = create_session()
 
     # Build the distance array
-    distance = get_all_social_distance(user_id)
+    distance = get_all_social_distance(userid)
     distance_list = [(friend, distance[friend]) for friend in distance if distance[friend] < 10]
 
     # Calculate score of the posts
@@ -112,34 +113,10 @@ def post_recommendations(
         ).all()
 
         for post in user_posts:
-            posts.append((post, post.like_count*(1/dist)))
+            posts.append((post, float(post.like_count)*(1/dist)))
 
     # Rank the score of posts
     posts.sort(key=lambda x:x[1], reverse=True)
-        
-    return posts[:number_of_posts]
-
-# @router.get("/recommendations")
-# def recommend_posts(
-#     user_id: int = Query(..., description="Target user ID"),
-#     min_likes: int = Query(50, description="Minimum likes threshold")
-# ):
-#     session = create_session()
-#     try:
-#         # Get friend IDs
-#         friend_ids = session.exec(
-#             select(HasFriend.friend_id)
-#             .where(HasFriend.userid == user_id)
-#         ).scalars().all()
-
-#         # Get posts from friends OR popular posts
-#         posts = session.exec(select(Post).where(or_(Post.uploader.in_(friend_ids),Post.like_count >= min_likes))).scalars().all()
-#         return {
-#             "message": "Success" if posts else "No posts found",
-#             "results": posts
-#         }
-
-#     except Exception as e:
-#         raise HTTPException(500, f"Database error: {str(e)}")
-#     finally:
-#         session.close()
+    
+    recommended_posts = [post[0] for post in posts[:number_of_posts]]
+    return recommended_posts

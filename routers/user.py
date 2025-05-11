@@ -74,24 +74,25 @@ def delete_user(uids: list[int] = Body(..., embed=True)):
         print(e)
         return {"message": "Error when deleting users", "error": e}
 
-
+# Update users
 @router.patch("/")
-def update_user(user: User = Body(..., embed=True)) -> list[Post]:
+def update_user(user: User = Body(..., embed=True)):
     try:
         session = create_session()
 
         statement = select(User).where(User.userid == user.userid)
-        query_result = session.exec(statement)
-        result = list(query_result)
+        user_to_update = session.exec(statement).first()
 
-        user_to_update = result[0]
+        if (not user_to_update):
+            raise Exception({"error": "No such user"})
+
         user_to_update.username = user.username
         user_to_update.email = user.email
         user_to_update.phone_no = user.phone_no
         user_to_update.admin = user.admin
         user_to_update.hashed_password = get_password_hash(user.hashed_password)
 
-        session.add(user)
+        session.add(user_to_update)
         session.commit()
         session.close()
         return {"message": "Successfully updated user"}
