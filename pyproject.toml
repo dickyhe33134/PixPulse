@@ -1,9 +1,9 @@
 [project]
-name = "pixpulse"
+name = "PixPulse"
 version = "0.1.0"
 description = ""
 authors = [
-    {name = "Your Name",email = "you@example.com"}
+    {name = "Lincoln",email = "1155176490@link.cuhk.edu.hk"}
 ]
 readme = "README.md"
 requires-python = ">=3.9"
@@ -18,8 +18,12 @@ dependencies = [
     "psycopg2-binary (>=2.9.10,<3.0.0)"
 ]
 
-package-mode = false
-
+[tool.poetry]
+name = "PixPulse"
+packages = [
+    {include = "routers"},
+    {include = "utils"},
+]
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"

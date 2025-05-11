@@ -4,48 +4,12 @@ from sqlmodel import select, col, or_, delete
 from utils.dbconn import create_session
 from fastapi import APIRouter, Body, HTTPException, status
 from routers.auth import get_password_hash
-from routers.friend import build_user_graph
 from models import Post, HasFriend, SafeUser, FriendRequest
 import bcrypt
 
 bcrypt.__about__ = bcrypt
 
 router = APIRouter(prefix="/api/user")
-
-
-# Get social distance of users
-@router.post("/distance")
-def get_social_distance(
-    userid: int = Body(..., embed=True), friend_id: int = Body(..., embed=True)
-) -> int:
-    
-    # Initialize the graph and BFS
-    graph = build_user_graph()
-    visited = set()
-    queue = [(userid, 0)]
-    distance = {userid: 0}
-
-    # BFS to find the shortest path
-    while queue:
-        current_user, dist = queue.pop(0)
-        visited.add(current_user)
-
-        if current_user == friend_id:
-            return dist
-
-        for friend in graph[current_user]:
-            if friend not in visited:
-                queue.append((friend, dist + 1))
-                visited.add(friend)
-                distance[friend] = dist + 1
-    
-    dist = distance.get(friend_id, -1)
-    if (dist == -1):
-        return HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Friend not found",
-        )
-    return dist
 
 
 # Get a list of all of the users

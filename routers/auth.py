@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, status, HTTPException, Response
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from passlib.context import CryptContext
-from models import User
+from models import User, SafeUser
 from typing import Annotated
 from datetime import timedelta, timezone, datetime
 from pydantic import BaseModel
@@ -68,15 +68,15 @@ def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
     )
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        username = payload["sub"]
-        if username is None:
+        userid = payload["sub"]
+        if userid is None:
             raise credentials_exception
         
         session = create_session()
-        statement = select(User).where(User.username==username)
-        query_result = session.exec(statement)
+        statement = select(User).where(User.userid==userid)
+        user = session.exec(statement).first()
+        user = SafeUser.model_validate(user)
 
-        user = list(query_result)[0]
         session.close()
         return user
         
@@ -95,7 +95,7 @@ def login(response: Response, form_data: OAuth2PasswordRequestForm = Depends()) 
     user = authenticate_user(form_data.username, form_data.password)
     if not user:
         raise login_exception
-    access_token = create_access_token(data={"sub": user.username}, expires_delta=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(data={"sub": user.userid, "context": SafeUser.model_validate(user)}, expires_delta=ACCESS_TOKEN_EXPIRE_MINUTES)
     token = Token(access_token=access_token, token_type="bearer") 
     
     return token
