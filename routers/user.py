@@ -4,48 +4,12 @@ from sqlmodel import select, col, or_, delete
 from utils.dbconn import create_session
 from fastapi import APIRouter, Body, HTTPException, status
 from routers.auth import get_password_hash
-from routers.friend import build_user_graph
 from models import Post, HasFriend, SafeUser, FriendRequest
 import bcrypt
 
 bcrypt.__about__ = bcrypt
 
 router = APIRouter(prefix="/api/user")
-
-
-# Get social distance of users
-@router.post("/distance")
-def get_social_distance(
-    userid: int = Body(..., embed=True), friend_id: int = Body(..., embed=True)
-) -> int:
-    
-    # Initialize the graph and BFS
-    graph = build_user_graph()
-    visited = set()
-    queue = [(userid, 0)]
-    distance = {userid: 0}
-
-    # BFS to find the shortest path
-    while queue:
-        current_user, dist = queue.pop(0)
-        visited.add(current_user)
-
-        if current_user == friend_id:
-            return dist
-
-        for friend in graph[current_user]:
-            if friend not in visited:
-                queue.append((friend, dist + 1))
-                visited.add(friend)
-                distance[friend] = dist + 1
-    
-    dist = distance.get(friend_id, -1)
-    if (dist == -1):
-        return HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Friend not found",
-        )
-    return dist
 
 
 # Get a list of all of the users
@@ -110,24 +74,25 @@ def delete_user(uids: list[int] = Body(..., embed=True)):
         print(e)
         return {"message": "Error when deleting users", "error": e}
 
-
+# Update users
 @router.patch("/")
-def update_user(user: User = Body(..., embed=True)) -> list[Post]:
+def update_user(user: User = Body(..., embed=True)):
     try:
         session = create_session()
 
         statement = select(User).where(User.userid == user.userid)
-        query_result = session.exec(statement)
-        result = list(query_result)
+        user_to_update = session.exec(statement).first()
 
-        user_to_update = result[0]
+        if (not user_to_update):
+            raise Exception({"error": "No such user"})
+
         user_to_update.username = user.username
         user_to_update.email = user.email
         user_to_update.phone_no = user.phone_no
         user_to_update.admin = user.admin
         user_to_update.hashed_password = get_password_hash(user.hashed_password)
 
-        session.add(user)
+        session.add(user_to_update)
         session.commit()
         session.close()
         return {"message": "Successfully updated user"}
