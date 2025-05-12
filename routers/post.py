@@ -1,6 +1,6 @@
 from sqlmodel import select, col, or_
 from fastapi import APIRouter, Body, Query, HTTPException, Depends
-from models import Post, HasFriend
+from models import Post, HasFriend, Media, HasMedia
 from utils.dbconn import create_session
 from routers.auth import oauth2_scheme, SECRET_KEY, ALGORITHM
 from routers.friend import get_all_social_distance
@@ -32,6 +32,20 @@ def query_post(
 
     session.close()
     return result
+
+# Get media ids of posts
+@router.get("/media")
+def get_post_media(
+    post_id: int | None,
+) -> list[int]:
+    session = create_session()
+
+    links = session.exec(select(HasMedia).where(HasMedia.post_id==post_id)).all()
+    media_ids = [link.media_id for link in links]
+
+    session.close()
+    return media_ids
+
 
 # Add posts
 @router.put("/")

@@ -51,7 +51,7 @@ class HasFriend(SQLModel, table=True):
     userid: int | None = Field(
         default=None, primary_key=True, foreign_key="users.userid"
     )
-    friend_id: int | None = Field(default=None, foreign_key="users.userid")
+    friend_id: int = Field(foreign_key="users.userid")
     is_close_friend: bool = Field(default=False)
 
 
@@ -59,9 +59,20 @@ class FriendRequest(SQLModel, table=True):
 
     __tablename__ = "friendrequests"
 
-    sender: int | None = Field(
-        default=None, primary_key=True, foreign_key="users.userid"
+    sender: int = Field(
+        primary_key=True, foreign_key="users.userid"
     )
-    receiver: int | None = Field(
-        default=None, primary_key=True, foreign_key="users.userid"
+    receiver: int = Field(
+        primary_key=True, foreign_key="users.userid"
     )
+
+class Media(SQLModel, table=True):
+
+    media_id: int | None = Field(default=None, primary_key=True)
+    userid: int = Field(foreign_key="users.userid")
+    image_data: bytes
+
+class HasMedia(SQLModel, table=True):
+
+    post_id: int = Field(foreign_key="posts.post_id")
+    media_id: int = Field(foreign_key="media.media_id")
