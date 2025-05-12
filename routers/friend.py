@@ -78,9 +78,27 @@ def get_all_social_distance(userid: int = Body(..., embed=True)) -> dict[int, in
     del distance[userid]
     return distance
 
+@router.get("/")
+def get_friends(token: str = Depends(oauth2_scheme)) -> list[SafeUser]:
+
+    try:
+        payload = jwt.decode(token, SECRET_KEY, ALGORITHM)
+        userid = payload["sub"]
+        if userid is None:
+            return auth_exception
+    except:
+        return auth_exception
+
+    session = create_session()
+    friend_id_list = session.exec(select(HasFriend.friend_id).where(HasFriend.userid==userid)).all()
+    friends = session.exec(select(User).where(col(User.userid).in_(friend_id_list))).all()
+
+    safe_friends = [SafeUser.model_validate(friend) for friend in friends]
+    return safe_friends
+        
 
 @router.post("/")
-def get_friends(userid: int = Body(..., embed=True)) -> list[SafeUser]:
+def query_friends(userid: int = Body(..., embed=True)) -> list[SafeUser]:
     session = create_session()
 
     result = session.exec(
@@ -102,7 +120,7 @@ def get_friends(userid: int = Body(..., embed=True)) -> list[SafeUser]:
 @router.put("/add_close_friend")
 def add_close_friend(
     friend_id: int = Body(..., embed=True), token: str = Depends(oauth2_scheme)
-):
+) -> HasFriend:
 
     try:
         payload = jwt.decode(token, SECRET_KEY, ALGORITHM)
@@ -121,17 +139,19 @@ def add_close_friend(
     ).all()
     if len(relations) < 1:
         return HTTPException(status.HTTP_400_BAD_REQUEST, "Users are not friends!")
-    
+
     relation = relations[0]
     relation.is_close_friend = True
     session.add(relation)
-    
+
     session.close()
     return relations
 
 
 @router.delete("/remove_close_friend")
-def remove_close_friend(friend_id: int = Body(..., embed=True), token: str = Depends(oauth2_scheme)):
+def remove_close_friend(
+    friend_id: int = Body(..., embed=True), token: str = Depends(oauth2_scheme)
+) -> HasFriend:
 
     try:
         payload = jwt.decode(token, SECRET_KEY, ALGORITHM)
@@ -142,6 +162,21 @@ def remove_close_friend(friend_id: int = Body(..., embed=True), token: str = Dep
         return auth_exception
 
     session = create_session()
+
+    relations = session.exec(
+        select(HasFriend).where(
+            HasFriend.friend_id == friend_id, HasFriend.userid == userid
+        )
+    ).all()
+    if len(relations) < 1:
+        return HTTPException(status.HTTP_400_BAD_REQUEST, "Not friends with the user")
+
+    relation = relations[0]
+    relation.is_close_friend = False
+    session.add(relation)
+
+    session.close()
+    return relation
 
 
 @router.get("/get_close_friend")
@@ -159,8 +194,9 @@ def get_close_friends(token: str = Depends(oauth2_scheme)) -> list[SafeUser]:
 
     result = session.exec(
         select(User).where(
-            (col(User.userid).in_(select(HasFriend.friend_id))),
-            (HasFriend.is_close_friend == True),
+            col(User.userid).in_(
+                select(HasFriend.userid).where(HasFriend.userid==userid)
+            )
         )
     )
     result = [SafeUser.model_validate(x) for x in result]

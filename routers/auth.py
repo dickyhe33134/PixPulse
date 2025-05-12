@@ -20,6 +20,7 @@ ACCESS_TOKEN_EXPIRE_MINUTES = timedelta(minutes=120)
 # OAuth stuff
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/auth/login")
 bcrypt_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+auth_exception = HTTPException(status.HTTP_401_UNAUTHORIZED, "Could not authorize user")
 
 class Token(BaseModel):
     access_token: str

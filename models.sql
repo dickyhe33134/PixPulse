@@ -17,17 +17,17 @@ CREATE TABLE Posts (
 );
 
 CREATE TABLE HasFriends (
-    user_id BIGSERIAL,
+    userid BIGSERIAL,
     friend_id BIGSERIAL,
-    PRIMARY KEY (user_id, friend_id),
-    FOREIGN KEY (user_id) REFERENCES users(userid),
+    PRIMARY KEY (userid, friend_id),
+    FOREIGN KEY (userid) REFERENCES users(userid),
     FOREIGN KEY (friend_id) REFERENCES users(userid)
 );
 
 CREATE TABLE FriendRequests (
-    sender_id BIGSERIAL NOT NULL REFERENCES users(userid),
-    receiver_id BIGSERIAL NOT NULL REFERENCES users(userid),
-    PRIMARY KEY (sender_id, receiver_id),
+    sender BIGSERIAL NOT NULL REFERENCES users(userid),
+    receiver BIGSERIAL NOT NULL REFERENCES users(userid),
+    PRIMARY KEY (sender, receiver),
 );
 
 CREATE TABLE Media (

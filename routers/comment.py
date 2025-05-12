@@ -3,12 +3,10 @@ from models import Comment, HasComment, Post
 from sqlmodel import select, col
 from fastapi import APIRouter, Body, HTTPException, Depends, status
 from utils.dbconn import create_session
-from routers.auth import ALGORITHM, SECRET_KEY, oauth2_scheme
+from routers.auth import ALGORITHM, SECRET_KEY, oauth2_scheme, auth_exception
 
 
 router = APIRouter(prefix="/api/comment")
-
-auth_exception = HTTPException(status.HTTP_401_UNAUTHORIZED, "Could not authorize user")
 
 @router.get("/")
 def get_comment() -> list[Comment]:

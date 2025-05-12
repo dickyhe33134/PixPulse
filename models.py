@@ -71,11 +71,11 @@ class FriendRequest(SQLModel, table=True):
     receiver: int = Field(foreign_key="users.userid")
 
 
-class HasComments(SQLModel, table=True):
+class HasComment(SQLModel, table=True):
     __tablename__="hascomments"
-    comment_id: int | None=Field(default=None, primary_key=True, foreign_key=Comments.comment_id)
-    post_id:int=Field(foreign_key=Post.post_id)
-    userid:int=Field(foreign_key=User.userid)
+    comment_id: int | None=Field(default=None, primary_key=True, foreign_key="comments.comment_id")
+    post_id:int=Field(foreign_key="posts.post_id")
+    userid:int=Field(foreign_key="users.userid")
     commented_at:datetime | None = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class Comment(SQLModel, table=True):
