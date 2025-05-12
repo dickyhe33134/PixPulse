@@ -32,10 +32,21 @@ class Post(SQLModel, table=True):
     posturl: str | None
     word_content: str | None
     like_count: int | None
+    created_at: datetime | None = Field(
+        default_factory=lambda: datetime.now(timezone.utc)
+    )
 
 class HasFriends(SQLModel, table=True):
 
-    __tablename__="hasfriends"
+class HasFriend(SQLModel, table=True):
+
+    __tablename__ = "hasfriends"
+
+    userid: int | None = Field(
+        default=None, primary_key=True, foreign_key="users.userid"
+    )
+    friend_id: int = Field(foreign_key="users.userid")
+    is_close_friend: bool = Field(default=False)
 
     userid: int | None=Field(default=None, primary_key=True,foreign_key="users.userid")
     friend_id: int | None=Field(default= None, foreign_key="users.userid")
@@ -50,7 +61,25 @@ class Comments(SQLModel, table=True):
     image_name: str
     image_data: bytes
     like_count: int |0=Field(default=0)
+     
+    sender: int = Field(
+        primary_key=True, foreign_key="users.userid"
+    )
+    receiver: int = Field(
+        primary_key=True, foreign_key="users.userid"
+    )
 
+class Media(SQLModel, table=True):
+
+    media_id: int | None = Field(default=None, primary_key=True)
+    userid: int = Field(foreign_key="users.userid")
+    image_data: bytes
+
+class HasMedia(SQLModel, table=True):
+
+    post_id: int = Field(foreign_key="posts.post_id")
+    media_id: int = Field(primary_key=True, foreign_key="media.media_id")
+      
 class HasComments(SQLModel, table=True):
     __tablename__="hascomments"
     comment_id: int | None=Field(default=None, primary_key=True, foreign_key=Comments.comment_id)
