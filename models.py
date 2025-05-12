@@ -4,12 +4,6 @@ from sys import stderr
 from sqlmodel import Field, Session, SQLModel, UniqueConstraint, create_engine, select
 from datetime import timezone
 
-from datetime import datetime
-from enum import Enum
-from sys import stderr
-from sqlmodel import Field, Session, SQLModel, UniqueConstraint, create_engine, select
-from datetime import timezone
-
 
 class User(SQLModel, table=True):
 
@@ -72,18 +66,12 @@ class FriendRequest(SQLModel, table=True):
     receiver: int = Field(primary_key=True, foreign_key="users.userid")
 
 
-class Media(SQLModel, table=True):
-
-    media_id: int | None = Field(default=None, primary_key=True)
-    userid: int = Field(foreign_key="users.userid")
-    image_data: bytes
-
-
-class HasMedia(SQLModel, table=True):
-
-    post_id: int = Field(foreign_key="posts.post_id")
-    media_id: int = Field(primary_key=True, foreign_key="media.media_id")
-
+class HasComments(SQLModel, table=True):
+    __tablename__="hascomments"
+    comment_id: int | None=Field(default=None, primary_key=True, foreign_key=Comments.comment_id)
+    post_id:int=Field(foreign_key=Post.post_id)
+    userid:int=Field(foreign_key=User.userid)
+    commented_at:datetime | None = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class Comment(SQLModel, table=True):
 
@@ -97,12 +85,20 @@ class Comment(SQLModel, table=True):
         default_factory=lambda: datetime.now(timezone.utc)
     )
 
-class HasComment(SQLModel, table=True):
+class HasMedia(SQLModel, table=True):
 
-    __tablename__ = "hascomments"
-
-    comment_id: int | None = Field(
-        default=None, primary_key=True, foreign_key="comments.comment_id"
-    )
     post_id: int = Field(foreign_key="posts.post_id")
+    media_id: int = Field(primary_key=True, foreign_key="media.media_id")
+
+
+class LikedBy(SQLModel,table=True):
+    __tablename__="likedby"
+    post_id:int | None=Field(default=None, foreign_key="posts.post_id")
+    comment_id:int | None=Field(default=None, foreign_key="comments.comment_id")
+    userid:int | None=Field(default=None, foreign_key="users.userid",primary_key=True)
+
+class Media(SQLModel, table=True):
+
+    media_id: int | None = Field(default=None, primary_key=True)
     userid: int = Field(foreign_key="users.userid")
+    image_data: bytes
