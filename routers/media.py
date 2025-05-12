@@ -22,7 +22,7 @@ def get_media(media_id: int):
 
 # Upload media to database
 @router.put("/")
-def add_media(media_bytes: bytes = Body(..., embed=True), token: str = Depends(oauth2_scheme)) -> Media:
+def add_media(media_bytes: bytes = Body(..., embed=True), token: str = Depends(oauth2_scheme)) -> int:
     session = create_session()
 
     try:
@@ -33,12 +33,12 @@ def add_media(media_bytes: bytes = Body(..., embed=True), token: str = Depends(o
     except:
         return HTTPException(status.HTTP_401_UNAUTHORIZED, "Can't authenticate user.")
 
-    media = Media(image_data=media_bytes)
+    media = Media(userid=userid, image_data=media_bytes)
     session.add(media)
     session.commit()
     session.refresh(media)
 
-    return media
+    return media.media_id
 
 # Deletes Media
 @router.delete("/")
@@ -59,17 +59,11 @@ def delete_media(media_id: int = Body(..., embed=True), token: str = Depends(oau
     if (len(result)<1):
         return HTTPException(status.HTTP_400_BAD_REQUEST, "Media by this user does not exist.")
 
-    # Get related posts
-    posts = session.exec(select(HasMedia).where(HasMedia.media_id==media_id)).all()
-    if (len(posts)<1):
-        return HTTPException(status.HTTP_400_BAD_REQUEST, "Posts cannot have no media.")
-    
-    # Extract the related post and the media
-    post = posts[0]
+
+    # Extract the media
     media = result[0]
 
-    # Delete the link between the post and media and the media itself
-    session.delete(post)
+    # Delete the media
     session.delete(media)
     session.commit()
 
@@ -78,12 +72,12 @@ def delete_media(media_id: int = Body(..., embed=True), token: str = Depends(oau
 
 
 @router.patch("/")
-def update_media(media: Media = Body(..., embed=True), token: str = Depends(oauth2_scheme)):
+def update_media(media: Media = Body(..., embed=True), token: str = Depends(oauth2_scheme)) -> int:
     session = create_session()
 
     try:
         payload = jwt.decode(token, SECRET_KEY, ALGORITHM)
-        userid = payload["sub"]
+        userid = int(payload["sub"])
         if userid is None:
             return HTTPException(status.HTTP_401_UNAUTHORIZED, "Can't authenticate user.")
     except:
@@ -103,6 +97,7 @@ def update_media(media: Media = Body(..., embed=True), token: str = Depends(oaut
 
     session.add(new_media)
     session.commit()
+    session.refresh(new_media)
 
     session.close()
-    return {"message": "Update successful"}
+    return new_media.media_id

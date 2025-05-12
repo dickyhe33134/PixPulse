@@ -42,6 +42,9 @@ class Post(SQLModel, table=True):
     posturl: str | None
     word_content: str | None
     like_count: int | None
+    created_at: datetime | None = Field(
+        default_factory=lambda: datetime.now(timezone.utc)
+    )
 
 
 class HasFriend(SQLModel, table=True):
@@ -75,4 +78,4 @@ class Media(SQLModel, table=True):
 class HasMedia(SQLModel, table=True):
 
     post_id: int = Field(foreign_key="posts.post_id")
-    media_id: int = Field(foreign_key="media.media_id")
+    media_id: int = Field(primary_key=True, foreign_key="media.media_id")
