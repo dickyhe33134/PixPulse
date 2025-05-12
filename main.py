@@ -7,6 +7,7 @@ from sqlmodel import select
 from models import User
 from routers import user, auth, post, friend, media, comment
 from routers.auth import oauth2_scheme
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
 app.include_router(user.router)
@@ -17,6 +18,13 @@ app.include_router(media.router)
 app.include_router(comment.router)
 
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_credentials=["*"],
+    allow_headers=["*"]
+)
 
 @lru_cache
 def get_settings():

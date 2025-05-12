@@ -98,6 +98,5 @@ def login(response: Response, form_data: OAuth2PasswordRequestForm = Depends()) 
     access_token = create_access_token(data={"sub": str(user.userid)}, expires_delta=ACCESS_TOKEN_EXPIRE_MINUTES)
     token = Token(access_token=access_token, token_type="bearer") 
 
-    print(token)
     return token
 
