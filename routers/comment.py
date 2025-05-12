@@ -1,69 +1,100 @@
-from models import Comments, HasComments
-from sqlmodel import select, col, or_
-from fastapi import APIRouter, Body, Query, HTTPException, Depends
+import jwt
+from models import Comment, HasComment, Post
+from sqlmodel import select, col
+from fastapi import APIRouter, Body, HTTPException, Depends, status
 from utils.dbconn import create_session
+from routers.auth import ALGORITHM, SECRET_KEY, oauth2_scheme
 
 
 router = APIRouter(prefix="/api/comment")
 
+auth_exception = HTTPException(status.HTTP_401_UNAUTHORIZED, "Could not authorize user")
 
 @router.get("/")
-def get_comment() -> list[Comments]:
+def get_comment() -> list[Comment]:
     session = create_session()
 
-    statement = select(Comments)
-    result = session.exec(statement).all()
-
-    session.close()
-    return result
-
-@router.get("/")
-def query_comment(
-    comment_ids: list[int] | None = Body(..., embed=True),
-    posts: list[int] | None = Body(..., embed=True),
-) -> list[Comments]:
-    session = create_session()
-
-    statement = select(Comments).where(or_(col(Comments.comment_id).in_(comment_ids), col(HasComments.post_id).in_(posts)))
+    statement = select(Comment)
     result = session.exec(statement).all()
 
     session.close()
     return result
 
 @router.post("/")
-def add_comment(comment:Comments=Body(...,embed=True)):
-    session=create_session()
+def query_comment(
+    post_id: int = Body(..., embed=True),
+) -> list[Comment]:
+    session = create_session()
+
+    relations = session.exec(select(HasComment).where(HasComment.post_id==post_id)).all()
+    result = list(session.exec(select(Comment).where(col(Comment.comment_id).in_(relations))))
+
+    result.sort(key=lambda x: x.commented_at, reverse=True)
+
+    session.close()
+    return result
+
+@router.put("/")
+def add_comment(post_id: int = Body(..., embed=True), comment: Comment = Body(..., embed=True), token: str = Depends(oauth2_scheme)):
+    session = create_session()
+
+    try:
+        payload = jwt.decode(token, SECRET_KEY, ALGORITHM)
+        userid = int(payload["sub"])
+        if userid is None:
+            return auth_exception
+    except:
+        return auth_exception
+    
+    if comment.userid!=userid:
+        return HTTPException(status.HTTP_400_BAD_REQUEST, "User ID does not match")
+
+    posts = session.exec(select(Post).where(Post.post_id==post_id)).all()
+    if len(posts)<1:
+        return HTTPException(status.HTTP_400_BAD_REQUEST, "Post cannot be found")
+    post = posts[0]
+
     session.add(comment)
     session.commit()
+    session.refresh(comment)
+
+    session.add(HasComment(comment_id=comment.comment_id, post_id=post.post_id))
+
     session.close()
-    return {"message": "Successfully added comments"}
+    return {"message": "Successfully added comment"}
 
 @router.delete("/")
-def delete_comment(comment_id:int=Body(..., embed=True)):
+def delete_comment(comment_id: int = Body(..., embed=True)):
     session = create_session()
-    statement=select(Comments).where(Comments.comment_id==comment_id)
-    result=session.exec(statement).all()
-    session.delete(result)
+    
+    comments = session.exec(select(Comment).where(Comment.comment_id==comment_id)).all()
+    if len(comments)<1:
+        return HTTPException(status.HTTP_401_UNAUTHORIZED, "Comment does not exist")
+
+    has_comments = session.exec(select(HasComment).where(HasComment.comment_id==comment_id)).all()
+    for has_comment in has_comments:
+        session.delete(has_comment)
+    session.commit()
+
+    session.delete(comments[0])
     session.commit()
 
     session.close()
-    return {"message": "Successfully deleted posts"}
+    return {"message": "Successfully deleted comment"}
 
 @router.patch("/")
-def update_comment(comment: Comments = Body(..., embed=True)):
+def update_comment(comment: Comment = Body(..., embed=True)):
     session = create_session()
 
-    statement = select(Comments).where(comment.post_id == comment.post_id)
-    result = session.exec(statement).all()
+    result = session.exec(select(Comment).where(Comment.comment_id==comment.comment_id)).all()
 
     if len(result) == 0:
         return {"message": "Comment not found"}
 
     comment_to_update = result[0]
-    comment_to_update.image_name = comment.image_name
-    comment_to_update.image_data = comment.image_data
     comment_to_update.word_content = comment.word_content
     session.add(comment_to_update)
+
     session.commit()
     session.close()
     return {"message": "Successfully updated comment"}

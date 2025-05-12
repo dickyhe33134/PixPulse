@@ -5,7 +5,7 @@ from config import Settings
 from utils.dbconn import create_session
 from sqlmodel import select
 from models import User
-from routers import user, auth, post, friend, media
+from routers import user, auth, post, friend, media, comment
 from routers.auth import oauth2_scheme
 
 app = FastAPI()
@@ -14,6 +14,7 @@ app.include_router(auth.router)
 app.include_router(post.router)
 app.include_router(friend.router)
 app.include_router(media.router)
+app.include_router(comment.router)
 
 
 
@@ -38,27 +39,3 @@ def test(x):
 @app.post("/print")
 def test_post(req: Any = Body(None)):
     return {"message": req["x"]}
-
-@app.get("/insert")
-def test_insert():
-    session = create_session()
-
-    tmp = User(username="user", email="user@user.com" ,hashed_password="1234")
-    session.add(tmp)
-
-    session.commit()
-    session.close()
-    return {"message": "Successfully added user"}
-
-
-@app.get("/check")
-def test_query():
-    session = create_session()
-
-    tmp = User(username="user")
-    statement = select(User)
-    query_results = session.exec(statement)
-    results = [x for x in query_results]
-
-    session.close()
-    return {"message": "Successful", "content": results}

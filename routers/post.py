@@ -153,6 +153,7 @@ def update_post(post: Post = Body(..., embed=True), media_id_list: list[int] = B
     if len(result) == 0:
         return {"message": "Post not found"}
 
+    # Update content of the post
     post_to_update = result[0]
     post_to_update.uploader = post.uploader
     post_to_update.posturl = post.posturl
@@ -162,12 +163,13 @@ def update_post(post: Post = Body(..., embed=True), media_id_list: list[int] = B
     old_has_media_list = session.exec(select(HasMedia).where(HasMedia.post_id==post.post_id)).all()
     old_media_id_list = [has_media.media_id for has_media in old_has_media_list]
 
+    # Check for new or no longer needed media
+    # Add or delete if necessary
     intersection = set(old_media_id_list)&set(media_id_list)
     for media_id in media_id_list:
         if media_id not in intersection:
             session.add(HasMedia(post_id=post.post_id, media_id=media_id))
     session.commit()
-
     for has_media in old_has_media_list:
         if has_media.media_id not in intersection:
             session.delete(has_media)
